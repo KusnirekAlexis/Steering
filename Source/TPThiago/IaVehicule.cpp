@@ -15,57 +15,64 @@ AIaVehicule::AIaVehicule()
 void AIaVehicule::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
-FVector AIaVehicule::SeekVelocity(FVector TargetLocation) {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("SEEK"));
-	FVector VectorDist = TargetLocation - GetActorLocation();
-	VectorDist.Normalize();
-	FVector VelocityDesired = VectorDist * max_speed;
-	return VelocityDesired - Velocity;
+FVector AIaVehicule::Seek(FVector TargetLocation) {
+	FVector vector_dist = TargetLocation - GetActorLocation();
+	vector_dist.Normalize();
+	FVector desired_velocity = vector_dist * max_speed;
+	return desired_velocity - Velocity;
 }
 
 
-FVector AIaVehicule::FleeVelocity(FVector TargetLocation)
+FVector AIaVehicule::Flee(FVector TargetLocation)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("FLEE"));
-	FVector VectorDist = TargetLocation - GetActorLocation();
-	VectorDist.Normalize();
-	FVector VelocityDesired = VectorDist * -max_speed;
-	return VelocityDesired - Velocity;
+	FVector vector_dist = TargetLocation - GetActorLocation();
+	vector_dist.Normalize();
+	FVector desired_velocity = vector_dist * -max_speed;
+	return desired_velocity - Velocity;
 }
 
 
-FVector AIaVehicule::PursuitVelocity(FVector TargetLocation, FVector TargetVelocity)
+FVector AIaVehicule::Pursuit()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("PURSUIT"));
-	FVector VectorDist = (TargetLocation + TargetVelocity * 3) - GetActorLocation();
-	VectorDist.Normalize();
-	FVector VelocityDesired = VectorDist * max_speed;
-	return VelocityDesired - Velocity;
+	float product = FVector::DotProduct(Target->GetVelocity().GetSafeNormal(), (GetActorLocation() - Target->GetActorLocation()).GetSafeNormal());
+	float turning_parameter;
+	if (product >= 0) 
+		turning_parameter = 1 - product;
+	else 
+		turning_parameter = 1;
+	float dist = (Target->GetActorLocation() - GetActorLocation()).Size();
+	float angle = dist / Velocity.Size() * turning_parameter;
+	FVector futur_target = Target->GetVelocity() * angle;
+	return Seek(Target->GetActorLocation() + futur_target);
 }
 
-/*FVector AIaVehicule::EvadeVelocity(float DeltaTime, FVector TargetLocation, FVector TargetVelocity)
+FVector AIaVehicule::Evade()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("EVADE"));
-	FVector VectorDist = (TargetLocation + TargetVelocity * 3) - GetActorLocation();
-	VectorDist.Normalize();
-	FVector VelocityDesired = VectorDist * max_speed;
-	return VelocityDesired - Velocity;
+	float product = FVector::DotProduct(Target->GetVelocity().GetSafeNormal(), (GetActorLocation() - Target->GetActorLocation()).GetSafeNormal());
+	float turning_parameter;
+	if (product >= 0)
+		turning_parameter = 1 - product;
+	else
+		turning_parameter = 1;
+	float dist = (Target->GetActorLocation() - GetActorLocation()).Size();
+	float angle = dist / Velocity.Size() * turning_parameter;
+	FVector FuturTarget = Target->GetVelocity() * angle;
+	return -Seek(Target->GetActorLocation() + FuturTarget);
 }
 
-FVector AIaVehicule::ArrivalVelocity(FVector TargetLocation)
+FVector AIaVehicule::Arrival(FVector TargetLocation)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, TEXT("ARRIVAL"));
-	FVector VectorDist = TargetLocation - GetActorLocation();
-	VectorDist.Normalize();
-	distance = length(VectorDist);
-	ramped_speed = max_speed * (distance / slowing_distance);
-	clipped_speed = minimum(ramped_speed, max_speed);
-	FVector VelocityDesired = (clipped_speed / distance) * target_offset;
-	return VelocityDesired - Velocity;
-}*/
+	FVector target_offset = TargetLocation - GetActorLocation();
+	float distance = target_offset.Size();
+	//5 modifiable pour la distance de ralenticement
+	float ramped_speed = max_speed * (distance / 5);
+	float clipped_speed = FMath::Min(ramped_speed, max_speed);
+	FVector desired_velocity = (clipped_speed / distance) * target_offset;
+	return desired_velocity - Velocity;
+}
 
 
 
@@ -74,11 +81,11 @@ void AIaVehicule::Tick(float DeltaTime) {
 	FVector TargetLocation = Target->GetActorLocation();
 	FVector TargetVelocity = Target->GetVelocity();
 	FVector SteeringDirection;
-	if (UsingAlgo == AlgoUsing::SEEK) SteeringDirection = SeekVelocity(TargetLocation);
-	else if (UsingAlgo == AlgoUsing::FLEE) SteeringDirection = FleeVelocity(TargetLocation);
-	//else if (UsingAlgo == AlgoUsing::ARRIVAL) SteeringDirection = ArrivalVelocity(TargetLocation);
-	else if (UsingAlgo == AlgoUsing::PURSUIT) SteeringDirection = PursuitVelocity(TargetLocation, TargetVelocity);
-	//else SteeringDirection = EvadeVelocity(TargetLocation);
+	if (Algorithme == AlgoUsing::SEEK) SteeringDirection = Seek(TargetLocation);
+	else if (Algorithme == AlgoUsing::FLEE) SteeringDirection = Flee(TargetLocation);
+	else if (Algorithme == AlgoUsing::EVADE) SteeringDirection = Evade();
+	else if (Algorithme == AlgoUsing::PURSUIT) SteeringDirection = Pursuit();
+	else SteeringDirection = Arrival(TargetLocation);
 	FVector SteeringForce = Truncate(SteeringDirection, max_force);
 	FVector Acceleration = SteeringForce / masse;
 	Velocity = Truncate(Velocity + Acceleration, max_speed);
@@ -86,24 +93,20 @@ void AIaVehicule::Tick(float DeltaTime) {
 	SetActorRotation(FRotator(Velocity.Rotation()));
 }
 
-void AIaVehicule::ChangeAlgo() {
-	Index = (Index + 1) % 5;
-	UsingAlgo = IntToEnum();
-}
-
 AlgoUsing AIaVehicule::IntToEnum() {
 	switch (Index) {
 	case 0:
 		return AlgoUsing::SEEK;
-	default:
+	case 1:
 		return AlgoUsing::FLEE;
 	case 2:
 		return AlgoUsing::PURSUIT;
-	}
-	/*case 3:
-		return AlgoUsing::PURSUIT;
-	default:
+	case 3:
 		return AlgoUsing::EVADE;
-	}*/
+	case 4:
+		return AlgoUsing::ARRIVAL;
+	default:
+		return AlgoUsing::ARRIVAL;
+	}
 }
 

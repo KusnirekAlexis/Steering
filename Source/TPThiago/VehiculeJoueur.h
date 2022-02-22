@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Vehicule.h"
+//#include "IaVehicule.h"
 #include "VehiculeJoueur.generated.h"
 
 UCLASS()
@@ -17,6 +18,8 @@ public:
 	AVehiculeJoueur();
 	UPROPERTY(EditAnywhere)
 		AVehicule* Vehicule;
+	UPROPERTY(EditAnywhere)
+		float Speed = 2;
 
 protected:
 	// Called when the game starts or when spawned
@@ -25,5 +28,11 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	UFUNCTION()
+	void MoveForward(float DeltaTime);
+	UFUNCTION()
+	void MoveRight(float DeltaTime);
+
+	void SetupInput();
 
 };

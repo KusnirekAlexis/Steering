@@ -25,12 +25,12 @@ void AVehicule::Tick(float DeltaTime)
 
 }
 
-FVector AVehicule::Truncate(FVector v, float max)
+FVector AVehicule::Truncate(FVector vecteur, float max)
 {
-	if (v.Size() > max) {
-		v.Normalize();
-		return v * max;
+	if (vecteur.Size() > max) {
+		vecteur.Normalize();
+		return vecteur * max;
 	}
-	return v;
+	return vecteur;
 }
 

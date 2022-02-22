@@ -19,7 +19,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Variable")
 		float max_force = 10;
 	UPROPERTY(EditAnywhere, Category = "Variable")
-		float max_speed = 10;
+		float max_speed = 5;
 	UPROPERTY(EditAnywhere, Category = "Variable")
 		float masse = 1;
 
@@ -30,6 +30,6 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	FVector Truncate(FVector v, float max);
+	FVector Truncate(FVector vecteur, float max);
 
 };

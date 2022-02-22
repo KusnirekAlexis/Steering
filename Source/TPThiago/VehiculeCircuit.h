@@ -3,24 +3,50 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "IaVehicule.h"
 #include "VehiculeCircuit.generated.h"
 
+UENUM()
+enum AlgoCuircuit
+{
+	CIRCUIT UMETA(DisplayName = "Circuit"),
+	ONE_PATH UMETA(DisplayName = "One path"),
+	TWO_PATH UMETA(DisplayName = "Two path"),
+};
+
+/**
+ *
+ */
 UCLASS()
-class TPTHIAGO_API AVehiculeCircuit : public AActor
+class TPTHIAGO_API AVehiculeCircuit : public AIaVehicule
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	AVehiculeCircuit();
 
+public:
+	AVehiculeCircuit();
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
+	UPROPERTY(EditAnywhere)
+		TEnumAsByte<AlgoCuircuit> AlgoCircuit;
+	UPROPERTY(EditAnywhere)
+		TArray<AVehicule*> ListeTarget;
+	UPROPERTY(EditAnywhere)
+		float DistanceChangeTarget = 10;
+	UPROPERTY(EditAnywhere)
+		float TempsDattente;
+
+	int Direction = 1;
+	int NbListe = 0;
+	bool Arriver = false;
+	bool IsTarget = false;
+	float TimeWaitCurrent = 0;
+
+public:
 	virtual void Tick(float DeltaTime) override;
 
+	FVector CalculDirection();
+	void ChangeTargetCircuit();
+	void ChangeTargetOne();
+	void ChangeTargetTwo();
 };
